@@ -11,14 +11,13 @@ const BotConfigForm: React.FC<BotConfigFormProps> = ({ config, onConfigUpdate, o
   const [localConfig, setLocalConfig] = useState<BotConfig>(config);
 
   const handleInputChange = (field: keyof BotConfig, value: string) => {
-    setLocalConfig(prev => ({
-      ...prev,
+    const updatedConfig = {
+      ...localConfig,
       [field]: value
-    }));
-  };
-
-  const handleSave = () => {
-    onConfigUpdate(localConfig);
+    };
+    setLocalConfig(updatedConfig);
+    // Auto-apply configuration changes immediately
+    onConfigUpdate(updatedConfig);
   };
 
   const handleReset = () => {
@@ -78,14 +77,6 @@ const BotConfigForm: React.FC<BotConfigFormProps> = ({ config, onConfigUpdate, o
           <option value="mistral-7b">Mistral 7B (OpenRouter)</option>
         </select>
       </div>
-
-      {/* Save Button */}
-      <button
-        onClick={handleSave}
-        className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors mb-3"
-      >
-        Save Configuration
-      </button>
 
       {/* Session Reset Button */}
       <button

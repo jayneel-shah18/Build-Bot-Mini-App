@@ -13,8 +13,8 @@ import type { ChatMessage } from './services/llmService'
 function App() {
   // Default configuration
   const defaultConfig: BotConfig = {
-    name: 'Build-Bot',
-    persona: 'A helpful assistant specialized in software development and building applications.',
+    name: 'Build Bot',
+    persona: 'A web app to configure a simple chatbot, ask it one or more questions, and see its response.',
     model: 'mistral-7b'
   };
 

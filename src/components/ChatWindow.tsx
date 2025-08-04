@@ -42,7 +42,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ messages }) => {
                       : 'bg-white text-gray-800 border border-gray-200 rounded-bl-md'
                   }`}
                 >
-                  <div className="break-words whitespace-pre-wrap overflow-wrap-anywhere">{message.content}</div>
+                  <div className="break-words whitespace-pre-wrap overflow-wrap-anywhere text-left">{message.content}</div>
                   <div
                     className={`text-xs mt-2 ${
                       message.type === 'user' 
