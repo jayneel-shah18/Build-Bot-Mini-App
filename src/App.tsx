@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import dayjs from 'dayjs'
+import toast, { Toaster } from 'react-hot-toast'
 import './App.css'
 import BotConfigForm from './components/BotConfigForm'
 import ChatWindow from './components/ChatWindow'
@@ -14,12 +15,14 @@ function App() {
   // Default configuration
   const defaultConfig: BotConfig = {
     name: 'Build Bot',
-    persona: 'A web app to configure a simple chatbot, ask it one or more questions, and see its response.',
+    persona: 'A helpful assistant specialized in software development and building applications.',
     model: 'mistral-7b'
   };
 
   // Local State Management
-  const [botConfig, setBotConfig] = useState<BotConfig>(defaultConfig);
+  const [activeConfig, setActiveConfig] = useState<BotConfig>(defaultConfig);
+  const [draftConfig, setDraftConfig] = useState<BotConfig>(defaultConfig);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const [chatHistory, setChatHistory] = useState<Message[]>([]);
   const [chatLogs, setChatLogs] = useState<LogEntry[]>([]);
@@ -30,7 +33,9 @@ function App() {
 
   // Handle session reset
   const handleSessionReset = () => {
-    setBotConfig(defaultConfig);
+    setActiveConfig(defaultConfig);
+    setDraftConfig(defaultConfig);
+    setHasUnsavedChanges(false);
     setChatHistory([]);
     setChatLogs([]);
     setConversationHistory([]);
@@ -38,15 +43,33 @@ function App() {
     console.log('Session reset to default configuration');
   };
 
-  // Handle config updates
-  const handleConfigUpdate = (newConfig: BotConfig) => {
-    setBotConfig(newConfig);
-    console.log('Bot configuration updated:', newConfig);
+  // Handle draft config updates (changes in form)
+  const handleDraftConfigUpdate = (newConfig: BotConfig) => {
+    setDraftConfig(newConfig);
+    // Check if there are unsaved changes
+    const hasChanges = JSON.stringify(newConfig) !== JSON.stringify(activeConfig);
+    setHasUnsavedChanges(hasChanges);
+    console.log('Draft configuration updated:', newConfig);
+  };
+
+  // Handle saving configuration (applying draft to active)
+  const handleSaveConfiguration = () => {
+    setActiveConfig(draftConfig);
+    setHasUnsavedChanges(false);
     
     // Clear conversation history when config changes significantly
-    if (newConfig.name !== botConfig.name || newConfig.persona !== botConfig.persona) {
+    if (draftConfig.name !== activeConfig.name || draftConfig.persona !== activeConfig.persona) {
       setConversationHistory([]);
     }
+    
+    // Show success toast (we'll add this library)
+    console.log('Configuration saved successfully:', draftConfig);
+    
+    // Show success toast
+    toast.success('Bot configuration saved successfully!', {
+      duration: 3000,
+      position: 'top-right',
+    });
   };
 
   // Send Message Logic
@@ -81,7 +104,7 @@ function App() {
     try {
       const botResponse = await LLMService.sendMessage(
         trimmedMessage,
-        botConfig,
+        activeConfig,
         conversationHistory
       );
 
@@ -107,7 +130,7 @@ function App() {
       const logEntry: LogEntry = {
         id: `log-${Date.now()}`,
         timestamp: dayjs().format('h:mmA'), // Human readable timestamp
-        model: botConfig.model,
+        model: activeConfig.model,
         question: truncateText(trimmedMessage, 50),
         answer: truncateText(botResponse, 50),
         fullQuestion: trimmedMessage,
@@ -156,8 +179,8 @@ function App() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="max-w-7xl mx-auto">
         <header className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">🛠️ Build-Bot</h1>
-          <p className="text-gray-600">Your AI-powered development assistant</p>
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">Build Bot Mini App</h1>
+          <p className="text-gray-600">Configure your own AI chatbot and ask it anything, instantly.</p>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
@@ -165,9 +188,11 @@ function App() {
           <div className="lg:col-span-1">
             <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
               <BotConfigForm 
-                config={botConfig} 
-                onConfigUpdate={handleConfigUpdate}
+                config={draftConfig} 
+                onConfigUpdate={handleDraftConfigUpdate}
+                onSaveConfiguration={handleSaveConfiguration}
                 onSessionReset={handleSessionReset}
+                hasUnsavedChanges={hasUnsavedChanges}
               />
             </div>
           </div>
@@ -176,16 +201,24 @@ function App() {
           <div className="lg:col-span-3">
             <div className="bg-white rounded-lg shadow-lg border border-gray-200 flex flex-col h-[600px] min-h-[600px]">
               <div className="p-4 border-b border-gray-200 flex-shrink-0">
-                <h2 className="text-lg font-semibold text-gray-800">Chat with {botConfig.name}</h2>
-                <p className="text-sm text-gray-500">Model: {botConfig.model}</p>
+                <h2 className="text-lg font-semibold text-gray-800">Chat with {activeConfig.name}</h2>
+                <p className="text-sm text-gray-500">Model: {activeConfig.model}</p>
               </div>
               <div className="flex-1 flex flex-col min-h-0">
                 <ChatWindow messages={chatHistory} />
                 <div className="border-t border-gray-200 flex-shrink-0">
                   <ChatInput 
                     onSendMessage={handleSendMessage} 
-                    disabled={isProcessing}
+                    disabled={isProcessing || hasUnsavedChanges}
                   />
+                  {hasUnsavedChanges && (
+                    <div className="px-4 pb-3 bg-yellow-50 border-t border-yellow-200">
+                      <div className="flex items-center text-sm text-yellow-700">
+                        <div className="mr-2">⚠️</div>
+                        <span>Please save your configuration before sending messages.</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -193,7 +226,10 @@ function App() {
         </div>
 
         {/* Bottom Log Panel */}
-        <LogPanel logs={chatLogs} botName={botConfig.name} />
+        <LogPanel logs={chatLogs} botName={activeConfig.name} />
+        
+        {/* Toast Notifications */}
+        <Toaster />
       </div>
     </div>
   );
